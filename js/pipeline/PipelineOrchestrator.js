@@ -1,7 +1,6 @@
-/**
- * PipelineOrchestrator — Controls the full GCam-style image processing pipeline.
- * Coordinates alignment, merging, denoising, tone mapping, color science, and sharpening.
- */
+import { Segmentor } from '../portrait/Segmentor.js';
+import { BokehRenderer } from '../portrait/BokehRenderer.js';
+
 export class PipelineOrchestrator {
   /**
    * @param {import('../gpu/WebGPUContext.js').WebGPUContext} gpu
@@ -16,9 +15,9 @@ export class PipelineOrchestrator {
       { name: 'Aligning frames…', weight: 25 },
       { name: 'Merging burst…', weight: 20 },
       { name: 'Reducing noise…', weight: 20 },
-      { name: 'Tone mapping…', weight: 15 },
+      { name: 'Tone mapping…', weight: 10 },
       { name: 'Color science…', weight: 10 },
-      { name: 'Sharpening…', weight: 5 },
+      { name: 'Sharpening & Bokeh…', weight: 10 },
     ];
   }
 
@@ -109,12 +108,18 @@ export class PipelineOrchestrator {
     const colored = this._applyColorScience(tonemapped, overrides);
     this._reportProgress(5, 1);
 
-    // Stage 6: Sharpen
+    // Stage 6: Sharpening & Portrait Bokeh
     this._reportProgress(6, 0);
-    const sharpened = this._sharpen(colored, overrides);
+    let finalImage = this._sharpen(colored, overrides);
+
+    if (mode === 'portrait') {
+      const { depthMap } = Segmentor.process(finalImage);
+      finalImage = BokehRenderer.render(finalImage, depthMap, this.profile.portrait?.max_bokeh_radius || 18);
+    }
+
     this._reportProgress(6, 1);
 
-    return { processed: sharpened, original };
+    return { processed: finalImage, original };
   }
 
   /**
