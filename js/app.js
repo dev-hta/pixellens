@@ -159,23 +159,16 @@ class PixelLensApp {
     this.dom.btnCloseSettings.addEventListener('click', () => this._hideSettings());
     this.dom.settingsPanel.querySelector('.settings-backdrop')?.addEventListener('click', () => this._hideSettings());
 
+    // Gallery thumbnail click -> save/share latest photo
+    this.dom.btnGallery.addEventListener('click', () => this._savePhoto());
+
     // Grid toggle
     this.dom.settingGrid.addEventListener('change', (e) => {
       this.dom.gridOverlay.classList.toggle('hidden', !e.target.checked);
     });
 
-    // Review screen
-    this.dom.btnBackCamera.addEventListener('click', () => this._backToCamera());
-    this.dom.btnSave.addEventListener('click', () => this._savePhoto());
-
     // Tap to focus
     this.dom.viewfinder.addEventListener('click', (e) => this._onTapFocus(e));
-
-    // Edit sliders (real-time re-processing)
-    const editSliders = [this.dom.editDenoise, this.dom.editShadows, this.dom.editHighlights, this.dom.editVibrance];
-    editSliders.forEach((slider) => {
-      slider?.addEventListener('input', () => this._onEditChange());
-    });
   }
 
   /**
@@ -215,17 +208,23 @@ class PixelLensApp {
 
       // Process through pipeline
       const { processed, original } = await this.pipeline.process(frames, mode, {
-        denoise: parseInt(this.dom.editDenoise?.value ?? 50),
-        shadows: parseInt(this.dom.editShadows?.value ?? 60),
-        highlights: parseInt(this.dom.editHighlights?.value ?? 40),
-        vibrance: parseInt(this.dom.editVibrance?.value ?? 55),
+        denoise: 50,
+        shadows: 60,
+        highlights: 40,
+        vibrance: 55,
       });
 
       this.lastResult = { processed, original, metadata };
 
-      // Show review screen
+      // Update gallery thumbnail with processed image
+      this._updateGalleryThumbnail(processed);
+
+      // Hide processing overlay & return immediately to viewfinder
       this._hideProcessing();
-      this._showReview(processed, original);
+
+      // Automatically trigger photo save/share (iOS Save to Photos)
+      await this._savePhoto(processed);
+
     } catch (err) {
       console.error('[App] Capture/processing error:', err);
       this._hideProcessing();
@@ -304,43 +303,40 @@ class PixelLensApp {
   }
 
   /**
-   * Show review screen with processed result.
+   * Update gallery thumbnail with processed image.
    */
-  _showReview(processed, original) {
-    const canvas = this.dom.resultCanvas;
+  _updateGalleryThumbnail(processed) {
+    const canvas = document.createElement('canvas');
     canvas.width = processed.width;
     canvas.height = processed.height;
     const ctx = canvas.getContext('2d');
     ctx.putImageData(processed, 0, 0);
 
-    this.dom.cameraScreen.classList.add('hidden');
-    this.dom.reviewScreen.classList.remove('hidden');
-
-    // Update gallery thumbnail
     const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = 48;
-    thumbCanvas.height = 48;
+    thumbCanvas.width = 96;
+    thumbCanvas.height = 96;
     const thumbCtx = thumbCanvas.getContext('2d');
-    thumbCtx.drawImage(canvas, 0, 0, 48, 48);
-    this.dom.btnGallery.querySelector('.gallery-thumb-inner').style.backgroundImage =
-      `url(${thumbCanvas.toDataURL('image/jpeg', 0.5)})`;
+    thumbCtx.drawImage(canvas, 0, 0, 96, 96);
+
+    const thumbInner = this.dom.btnGallery.querySelector('.gallery-thumb-inner');
+    if (thumbInner) {
+      thumbInner.style.backgroundImage = `url(${thumbCanvas.toDataURL('image/jpeg', 0.8)})`;
+    }
   }
 
   /**
-   * Back to camera from review.
+   * Save processed photo directly.
    */
-  _backToCamera() {
-    this.dom.reviewScreen.classList.add('hidden');
-    this.dom.cameraScreen.classList.remove('hidden');
-  }
+  async _savePhoto(processedImage) {
+    const imgData = processedImage || this.lastResult?.processed;
+    if (!imgData) return;
 
-  /**
-   * Save processed photo.
-   */
-  async _savePhoto() {
-    if (!this.lastResult) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = imgData.width;
+    canvas.height = imgData.height;
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(imgData, 0, 0);
 
-    const canvas = this.dom.resultCanvas;
     const quality = parseInt(document.getElementById('setting-quality')?.value ?? 100) / 100;
     const fileName = `pixellens_${Date.now()}.jpg`;
 
@@ -360,7 +356,6 @@ class PixelLensApp {
           navigator.vibrate?.(100);
           return;
         } catch (err) {
-          // User canceled share sheet or share failed - fallback to link download
           if (err.name !== 'AbortError') {
             console.warn('[App] Web Share failed, falling back to download:', err);
           }
