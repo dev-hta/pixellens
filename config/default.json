@@ -1,0 +1,45 @@
+{
+  "device": "iPhone 13 Series",
+  "sensor": {
+    "main": {
+      "megapixels": 12,
+      "pixel_size_um": 1.7,
+      "aperture": 1.6,
+      "sensor_model": "Sony IMX703"
+    }
+  },
+  "noise_model": {
+    "ao": 600,
+    "as": 1200000,
+    "bo": 18000,
+    "bs": 80000
+  },
+  "denoise": {
+    "levels": [
+      { "iso_range": [50, 200],   "luma": 180, "chroma": 400, "revert": 0.05 },
+      { "iso_range": [200, 800],  "luma": 140, "chroma": 450, "revert": 0.05 },
+      { "iso_range": [800, 3200], "luma": 100, "chroma": 500, "revert": 0.03 }
+    ]
+  },
+  "tone_mapping": {
+    "shadow_lift": 18,
+    "highlight_compress": 12,
+    "contrast_slope": 1.15,
+    "vibrance": 1.12
+  },
+  "color": {
+    "white_balance_bias": { "r": 1.0, "g": 1.0, "b": 1.02 },
+    "saturation_matrix": [1.1, 0, 0, 0, 1.05, 0, 0, 0, 1.08],
+    "skin_tone_protection": true
+  },
+  "burst": {
+    "min_frames": 5,
+    "max_frames": 12,
+    "adaptive": true
+  },
+  "portrait": {
+    "max_bokeh_radius": 18,
+    "edge_feather": 3,
+    "bokeh_shape": "disk"
+  }
+}
