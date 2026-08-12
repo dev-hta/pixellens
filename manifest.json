@@ -1,0 +1,17 @@
+{
+  "name": "PixelLens",
+  "short_name": "PixelLens",
+  "description": "GCam-class computational photography in your browser",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "./icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
