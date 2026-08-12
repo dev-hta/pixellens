@@ -337,21 +337,44 @@ class PixelLensApp {
   /**
    * Save processed photo.
    */
-  _savePhoto() {
+  async _savePhoto() {
     if (!this.lastResult) return;
 
     const canvas = this.dom.resultCanvas;
     const quality = parseInt(document.getElementById('setting-quality')?.value ?? 100) / 100;
+    const fileName = `pixellens_${Date.now()}.jpg`;
 
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+      // iOS Safari native Web Share API (allows direct "Save to Photos / Camera Roll")
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'PixelLens Photo',
+            text: 'Enhanced with PixelLens Computational Photography',
+          });
+          navigator.vibrate?.(100);
+          return;
+        } catch (err) {
+          // User canceled share sheet or share failed - fallback to link download
+          if (err.name !== 'AbortError') {
+            console.warn('[App] Web Share failed, falling back to download:', err);
+          }
+        }
+      }
+
+      // Fallback: standard web download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pixellens_${Date.now()}.jpg`;
+      a.download = fileName;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      // Haptic
       navigator.vibrate?.(100);
     }, 'image/jpeg', quality);
   }
