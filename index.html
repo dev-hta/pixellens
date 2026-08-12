@@ -142,63 +142,7 @@
       </div>
     </div>
 
-    <!-- Review Screen -->
-    <div id="review-screen" class="review-screen hidden">
-      <header class="review-header">
-        <button id="btn-back-camera" class="top-btn" aria-label="Back">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <h2 class="review-title">Enhanced</h2>
-        <button id="btn-save" class="top-btn save-btn" aria-label="Save">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </button>
-      </header>
-      
-      <!-- Before/After comparison -->
-      <div class="comparison-container">
-        <canvas id="result-canvas" class="result-canvas"></canvas>
-        <div id="comparison-slider" class="comparison-slider">
-          <div class="comparison-handle">
-            <div class="comparison-handle-line"></div>
-            <div class="comparison-handle-grip">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M6 10l4-4v8zM14 10l-4-4v8z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div class="comparison-labels">
-          <span class="comparison-label">Original</span>
-          <span class="comparison-label">Enhanced</span>
-        </div>
-      </div>
 
-      <!-- Quick edit controls -->
-      <div class="edit-controls">
-        <div class="edit-slider-group">
-          <label for="edit-denoise">Denoise</label>
-          <input type="range" id="edit-denoise" min="0" max="100" value="50" />
-        </div>
-        <div class="edit-slider-group">
-          <label for="edit-shadows">Shadows</label>
-          <input type="range" id="edit-shadows" min="0" max="100" value="60" />
-        </div>
-        <div class="edit-slider-group">
-          <label for="edit-highlights">Highlights</label>
-          <input type="range" id="edit-highlights" min="0" max="100" value="40" />
-        </div>
-        <div class="edit-slider-group">
-          <label for="edit-vibrance">Vibrance</label>
-          <input type="range" id="edit-vibrance" min="0" max="100" value="55" />
-        </div>
-      </div>
-    </div>
 
     <!-- Settings Panel (slide-up) -->
     <div id="settings-panel" class="settings-panel hidden">
