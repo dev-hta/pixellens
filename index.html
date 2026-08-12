@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="description" content="GCam-class computational photography in your browser. HDR+, Portrait Mode, Night Mode — powered by WebGPU." />
+  
+  <title>PixelLens — Computational Photography</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="./css/app.css" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+</head>
+<body>
+  <div id="app">
+    <!-- Splash / Loading Screen -->
+    <div id="splash-screen" class="splash-screen">
+      <div class="splash-content">
+        <div class="splash-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="28" stroke="url(#lens-grad)" stroke-width="3" />
+            <circle cx="32" cy="32" r="18" stroke="url(#lens-grad)" stroke-width="2" opacity="0.6" />
+            <circle cx="32" cy="32" r="10" fill="url(#lens-grad)" opacity="0.3" />
+            <circle cx="32" cy="32" r="5" fill="url(#lens-grad)" />
+            <defs>
+              <linearGradient id="lens-grad" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="#7c5cfc" />
+                <stop offset="100%" stop-color="#36d1dc" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 class="splash-title">PixelLens</h1>
+        <p class="splash-subtitle">Computational Photography</p>
+        <div class="splash-loader">
+          <div class="splash-loader-bar"></div>
+        </div>
+        <p id="splash-status" class="splash-status">Initializing WebGPU…</p>
+      </div>
+    </div>
+
+    <!-- Main Camera Interface -->
+    <div id="camera-screen" class="camera-screen hidden">
+      
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <button id="btn-flash" class="top-btn" aria-label="Flash">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </button>
+        <div class="top-info">
+          <span id="resolution-badge" class="badge">--</span>
+          <span id="gpu-badge" class="badge badge-accent">WebGPU</span>
+        </div>
+        <button id="btn-settings" class="top-btn" aria-label="Settings">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+          </svg>
+        </button>
+      </header>
+
+      <!-- Viewfinder -->
+      <div class="viewfinder-container">
+        <video id="viewfinder" class="viewfinder" autoplay playsinline muted></video>
+        <canvas id="preview-canvas" class="preview-canvas hidden"></canvas>
+        
+        <!-- Focus indicator -->
+        <div id="focus-ring" class="focus-ring hidden"></div>
+        
+        <!-- Grid overlay -->
+        <div id="grid-overlay" class="grid-overlay hidden">
+          <div class="grid-line grid-v1"></div>
+          <div class="grid-line grid-v2"></div>
+          <div class="grid-line grid-h1"></div>
+          <div class="grid-line grid-h2"></div>
+        </div>
+
+        <!-- Level indicator -->
+        <div id="level-indicator" class="level-indicator">
+          <div class="level-line"></div>
+        </div>
+        
+        <!-- Burst counter -->
+        <div id="burst-counter" class="burst-counter hidden">
+          <span id="burst-count">0</span> / <span id="burst-total">7</span>
+        </div>
+      </div>
+
+      <!-- Mode Selector -->
+      <nav class="mode-selector">
+        <button class="mode-btn" data-mode="night">Night</button>
+        <button class="mode-btn" data-mode="hdr" aria-pressed="true">HDR+</button>
+        <button class="mode-btn" data-mode="portrait">Portrait</button>
+        <button class="mode-btn" data-mode="pro">Pro</button>
+      </nav>
+
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <!-- Gallery thumbnail -->
+        <button id="btn-gallery" class="gallery-thumb" aria-label="Gallery">
+          <div class="gallery-thumb-inner"></div>
+        </button>
+        
+        <!-- Shutter -->
+        <button id="btn-shutter" class="shutter-btn" aria-label="Capture">
+          <div class="shutter-ring"></div>
+          <div class="shutter-inner"></div>
+        </button>
+        
+        <!-- Camera switch -->
+        <button id="btn-switch-camera" class="switch-btn" aria-label="Switch camera">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+            <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+            <polyline points="16 3 19 6 16 9" />
+            <polyline points="8 15 5 18 8 21" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="processing-overlay" class="processing-overlay hidden">
+      <div class="processing-content">
+        <div class="processing-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="processing-ring-bg" cx="50" cy="50" r="42" />
+            <circle id="processing-ring-progress" class="processing-ring-fill" cx="50" cy="50" r="42" />
+          </svg>
+          <span id="processing-percent" class="processing-percent">0%</span>
+        </div>
+        <p id="processing-stage" class="processing-stage">Aligning frames…</p>
+      </div>
+    </div>
+
+    <!-- Review Screen -->
+    <div id="review-screen" class="review-screen hidden">
+      <header class="review-header">
+        <button id="btn-back-camera" class="top-btn" aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <h2 class="review-title">Enhanced</h2>
+        <button id="btn-save" class="top-btn save-btn" aria-label="Save">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
+      </header>
+      
+      <!-- Before/After comparison -->
+      <div class="comparison-container">
+        <canvas id="result-canvas" class="result-canvas"></canvas>
+        <div id="comparison-slider" class="comparison-slider">
+          <div class="comparison-handle">
+            <div class="comparison-handle-line"></div>
+            <div class="comparison-handle-grip">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M6 10l4-4v8zM14 10l-4-4v8z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="comparison-labels">
+          <span class="comparison-label">Original</span>
+          <span class="comparison-label">Enhanced</span>
+        </div>
+      </div>
+
+      <!-- Quick edit controls -->
+      <div class="edit-controls">
+        <div class="edit-slider-group">
+          <label for="edit-denoise">Denoise</label>
+          <input type="range" id="edit-denoise" min="0" max="100" value="50" />
+        </div>
+        <div class="edit-slider-group">
+          <label for="edit-shadows">Shadows</label>
+          <input type="range" id="edit-shadows" min="0" max="100" value="60" />
+        </div>
+        <div class="edit-slider-group">
+          <label for="edit-highlights">Highlights</label>
+          <input type="range" id="edit-highlights" min="0" max="100" value="40" />
+        </div>
+        <div class="edit-slider-group">
+          <label for="edit-vibrance">Vibrance</label>
+          <input type="range" id="edit-vibrance" min="0" max="100" value="55" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Panel (slide-up) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-backdrop"></div>
+      <div class="settings-sheet">
+        <div class="settings-handle"></div>
+        <h3 class="settings-title">Settings</h3>
+        
+        <div class="settings-group">
+          <h4 class="settings-group-title">Capture</h4>
+          <div class="setting-row">
+            <span>Burst Frames</span>
+            <select id="setting-burst">
+              <option value="auto">Auto</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="7">7</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>JPEG Quality</span>
+            <select id="setting-quality">
+              <option value="100">100% (Max)</option>
+              <option value="95">95%</option>
+              <option value="90">90%</option>
+              <option value="85">85%</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>Grid Lines</span>
+            <label class="toggle">
+              <input type="checkbox" id="setting-grid" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h4 class="settings-group-title">Processing</h4>
+          <div class="setting-row">
+            <span>Denoise Strength</span>
+            <input type="range" id="setting-denoise" min="0" max="100" value="50" />
+          </div>
+          <div class="setting-row">
+            <span>Color Noise</span>
+            <input type="range" id="setting-chroma" min="0" max="100" value="70" />
+          </div>
+          <div class="setting-row">
+            <span>Sharpness</span>
+            <input type="range" id="setting-sharpness" min="0" max="100" value="50" />
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h4 class="settings-group-title">Device</h4>
+          <div class="setting-row">
+            <span>Device Profile</span>
+            <select id="setting-device">
+              <option value="auto">Auto Detect</option>
+              <option value="iphone13">iPhone 13</option>
+              <option value="iphone13pro">iPhone 13 Pro</option>
+              <option value="iphone14">iPhone 14</option>
+              <option value="iphone14pro">iPhone 14 Pro</option>
+              <option value="iphone15">iPhone 15</option>
+              <option value="iphone15pro">iPhone 15 Pro</option>
+              <option value="iphone16">iPhone 16</option>
+              <option value="iphone16pro">iPhone 16 Pro</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>GPU Backend</span>
+            <span id="setting-gpu-info" class="setting-info">--</span>
+          </div>
+        </div>
+
+        <button id="btn-close-settings" class="btn-primary">Done</button>
+      </div>
+    </div>
+
+    <!-- Hidden file input for native capture -->
+    <input type="file" id="native-capture" accept="image/*" capture="environment" class="hidden-input" />
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
